@@ -106,7 +106,7 @@ python -m venv .venv
 .venv/bin/pytest
 ```
 
-`tests/test_config.py` и `tests/test_sandbox.py` на каркасе красные: `load_settings`, `build_policy`, `validate_source` и `run` возвращают `None` либо не бросают ожидаемые исключения. Это зафиксированный контракт, а не поломка прогона. Остальные пакеты импортируются без сторонних библиотек, пока тела пустые.
+`tests/test_config.py` и `tests/test_sandbox.py` проверяют загрузчик и subprocess-песочницу без сети и без Docker-демона. `tests/test_rag.py` и `tests/test_graph.py` подменяют LLM и эмбеддинги фейками. `tests/test_export.py` открывает записанные docx и pdf. Живой ключ для этого прогона не нужен.
 
 ## Вне скоупа каркаса
 

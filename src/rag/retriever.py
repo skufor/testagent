@@ -1,4 +1,4 @@
-"""Query-time retrieval. Joins vector hits with graph neighbors, does not generate text."""
+"""Query-time retrieval. Does not generate text and does not expand the graph."""
 
 from __future__ import annotations
 
@@ -30,4 +30,19 @@ class Retriever:
         into this list; callers use ``KnowledgeGraph.expand`` separately so
         vector rank stays reproducible.
         """
-        pass
+        if query.strip() == "":
+            raise ValueError("query is blank")
+        limit = self._top_k if top_k is None else top_k
+        vectors = self._embeddings.embed([query])
+        if not vectors:
+            return []
+        hits = self._store.search(vectors[0], limit)
+        return sorted(
+            hits,
+            key=lambda hit: (
+                -hit.score,
+                hit.chunk.metadata.document_id,
+                hit.chunk.metadata.char_start,
+                hit.chunk.chunk_id,
+            ),
+        )

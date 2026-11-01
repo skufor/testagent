@@ -1,8 +1,4 @@
-"""Contract tests for the sandbox policy and runners.
-
-Every test in this module fails while ``build_policy``, ``validate_source``,
-``SubprocessSandbox.run`` and ``create_sandbox`` are stubs.
-"""
+"""Contract tests for the sandbox policy and subprocess runner."""
 
 from __future__ import annotations
 

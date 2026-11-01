@@ -1,7 +1,4 @@
-"""Contract tests for ``config.load_settings``.
-
-Every test in this module fails while ``load_settings`` is a stub.
-"""
+"""Contract tests for ``config.load_settings``."""
 
 from __future__ import annotations
 
