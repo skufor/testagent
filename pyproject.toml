@@ -1,0 +1,16 @@
+[project]
+name = "study-agent"
+version = "0.1.0"
+description = "Typed skeleton of a study/work agent: RAG, knowledge graph, OpenAI-compatible LLM, docx/pdf export, isolated code sandbox."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

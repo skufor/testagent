@@ -1,0 +1,29 @@
+# Runtime and test dependencies for the study/work agent skeleton.
+# Ranges are inclusive-lower, exclusive-upper. Bodies in src/ are stubs;
+# these packages are the implementation stack fixed by TODO.md.
+
+# LLM: OpenAI-compatible chat and embeddings.
+openai>=1.55.0,<3.0.0
+
+# Structured config parsing (used by config.py in task 1).
+pydantic>=2.9.0,<3.0.0
+python-dotenv>=1.0.1,<2.0.0
+
+# RAG parsers.
+pypdf>=5.1.0,<6.0.0
+
+# Knowledge graph.
+networkx>=3.4,<4.0.0
+
+# Document export.
+python-docx>=1.1.2,<2.0.0
+reportlab>=4.2.5,<5.0.0
+
+# Sandbox backend.
+docker>=7.1.0,<8.0.0
+
+# Typing helpers for 3.10/3.11 annotations and third-party stubs.
+typing-extensions>=4.12.2,<5.0.0
+
+# Tests. Contract tests are expected to fail until tasks 1 and 2 land.
+pytest>=8.3.0,<9.0.0
