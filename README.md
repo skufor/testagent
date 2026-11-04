@@ -108,6 +108,27 @@ python -m venv .venv
 
 `tests/test_config.py` и `tests/test_sandbox.py` проверяют загрузчик и subprocess-песочницу без сети и без Docker-демона. `tests/test_rag.py` и `tests/test_graph.py` подменяют LLM и эмбеддинги фейками. `tests/test_export.py` открывает записанные docx и pdf. Живой ключ для этого прогона не нужен.
 
-## Вне скоупа каркаса
+## HTTP
 
-Нет HTTP-сервера, очереди, учёта пользователей, персистентного диалога и автоматической установки Docker. Индекс и каталоги экспорта появляются только в задачах 3 и 4, не в загрузчике конфигурации.
+Веб-клиент лежит в [web/](web/). Сервер — [server_core.py](server_core.py):
+
+```bash
+cp .env.example .env   # вписать LLM_API_KEY
+pip install -r requirements.txt
+uvicorn server_core:app --host 127.0.0.1 --port 8000
+cd web && npm install && npm run dev
+```
+
+| Метод | Назначение |
+| --- | --- |
+| `GET /health` | процесс поднялся и конфиг прочитан |
+| `POST /ask_stream` | NDJSON: `stage`, `chunk`, `done`, `error`. Поле `execute_code=1` включает песочницу |
+| `POST /library` | ingest `.txt` `.md` `.pdf` `.docx` |
+| `GET /library` / `DELETE /library/{id}` | список и удаление |
+| `POST /export` | `docx` или `pdf` из текста ответа |
+| `POST /reset_history` | сброс короткой памяти чата |
+
+`RAG_EMBEDDING_MODEL=local-hash` — локальные векторы. Шлюз Gonka на момент подключения не отдаёт `/embeddings`. Граф понятий по-прежнему строится одним JSON-вызовом чат-модели при ingest.
+
+В интерфейсе нет генерации картинок, веб-поиска, тарифов и входа через Telegram: у агента этого нет. Режим Agent — это тот же ответ плюс один fenced `python`-блок в песочнице. Скилл — локальная доп. инструкция к вопросу. Библиотека — реальный индекс.
+

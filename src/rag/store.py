@@ -94,6 +94,25 @@ class FileVectorStore:
         )
         return scored[:top_k]
 
+    def documents(self) -> list[tuple[str, str]]:
+        """Unique ``(document_id, source_path)`` pairs, sorted by document id."""
+        current = self._load()
+        found: dict[str, str] = {}
+        records = current["records"]
+        if not isinstance(records, dict):
+            return []
+        for payload in records.values():
+            if not isinstance(payload, dict):
+                continue
+            chunk = payload.get("chunk")
+            if not isinstance(chunk, dict):
+                continue
+            metadata = chunk.get("metadata")
+            if not isinstance(metadata, dict) or "document_id" not in metadata:
+                continue
+            found[str(metadata["document_id"])] = str(metadata.get("source_path") or "")
+        return sorted(found.items())
+
     def _load(self) -> dict[str, object]:
         if not self._path.exists():
             return {"dim": 0, "records": {}}

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import math
+import re
 import urllib.error
 import urllib.request
 from typing import Protocol, Sequence
@@ -49,6 +52,34 @@ class OpenAICompatibleEmbeddings:
         if len(vectors) != len(texts):
             raise EmbeddingError("embeddings response length does not match the input")
         return vectors
+
+
+class HashEmbeddings:
+    """Deterministic local vectors. Used when the gateway has no /embeddings."""
+
+    def __init__(self, dim: int = 256) -> None:
+        if dim < 8:
+            raise ValueError("dim must be >= 8")
+        self._dim = dim
+
+    def embed(self, texts: Sequence[str]) -> list[tuple[float, ...]]:
+        if len(texts) == 0:
+            return []
+        return [_hash_vector(text, self._dim) for text in texts]
+
+
+def _hash_vector(text: str, dim: int) -> tuple[float, ...]:
+    buckets = [0.0] * dim
+    tokens = re.findall(r"\w+", text.lower())
+    if not tokens:
+        tokens = ["_"]
+    for token in tokens:
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        index = int.from_bytes(digest[:4], "big") % dim
+        sign = 1.0 if digest[4] % 2 == 0 else -1.0
+        buckets[index] += sign
+    norm = math.sqrt(sum(value * value for value in buckets)) or 1.0
+    return tuple(value / norm for value in buckets)
 
 
 def _post_json(url: str, payload: dict[str, object], settings: LLMSettings, error_type: type[Exception]) -> dict[str, object]:

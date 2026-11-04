@@ -25,5 +25,10 @@ docker>=7.1.0,<8.0.0
 # Typing helpers for 3.10/3.11 annotations and third-party stubs.
 typing-extensions>=4.12.2,<5.0.0
 
+# HTTP adapter used by the web client.
+fastapi>=0.115.0,<1.0.0
+uvicorn>=0.32.0,<1.0.0
+python-multipart>=0.0.12,<1.0.0
+
 # Tests. Contract tests are expected to fail until tasks 1 and 2 land.
 pytest>=8.3.0,<9.0.0
