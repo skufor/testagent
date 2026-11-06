@@ -14,7 +14,7 @@ export default function ModelSelect({ models, current, onSelect }) {
   const items = models.length ? models : current ? [{ id: current }] : [];
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative z-[300]">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -28,7 +28,7 @@ export default function ModelSelect({ models, current, onSelect }) {
       </button>
       {open && (
         <div
-          className="absolute right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 top-[calc(100%+6px)] z-40 w-64 max-w-[80vw]
+          className="absolute right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 top-[calc(100%+6px)] z-[300] w-64 max-w-[80vw]
             rounded-sm border border-border bg-bg-elevated shadow-[0_6px_20px_rgba(0,0,0,0.16)] py-1 animate-popIn"
         >
           <p className="px-3 py-1.5 text-[11px] text-text-tertiary">Шлюз, ключ только на сервере</p>
