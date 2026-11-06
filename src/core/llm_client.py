@@ -31,6 +31,7 @@ class CompletionRequest:
     temperature: float = 0.0
     max_tokens: int | None = None
     response_format: ResponseFormat = "text"
+    model: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +68,7 @@ class OpenAICompatibleClient:
         """Execute ``request``. Retries only on HTTP 429 and 5xx, up to ``max_retries``."""
         url = self._settings.base_url.rstrip("/") + "/chat/completions"
         payload: dict[str, object] = {
-            "model": self._settings.model,
+            "model": request.model or self._settings.model,
             "messages": [{"role": message.role, "content": message.content} for message in request.messages],
             "temperature": request.temperature,
         }
