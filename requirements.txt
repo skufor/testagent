@@ -1,34 +1,20 @@
-# Runtime and test dependencies for the study/work agent skeleton.
-# Ranges are inclusive-lower, exclusive-upper. Bodies in src/ are stubs;
-# these packages are the implementation stack fixed by TODO.md.
+# Runtime and test dependencies for the study/work agent.
+# LLM client is implemented with urllib (src/core/llm_client.py); no openai SDK.
 
-# LLM: OpenAI-compatible chat and embeddings.
-openai>=1.55.0,<3.0.0
-
-# Structured config parsing (used by config.py in task 1).
 pydantic>=2.9.0,<3.0.0
 python-dotenv>=1.0.1,<2.0.0
-
-# RAG parsers.
 pypdf>=5.1.0,<6.0.0
-
-# Knowledge graph.
 networkx>=3.4,<4.0.0
-
-# Document export.
 python-docx>=1.1.2,<2.0.0
 reportlab>=4.2.5,<5.0.0
-
-# Sandbox backend.
+python-pptx>=1.0.0,<2.0.0
+Pillow>=10.0.0,<12.0.0
+matplotlib>=3.8.0,<4.0.0
+numpy>=1.26.0,<3.0.0
 docker>=7.1.0,<8.0.0
-
-# Typing helpers for 3.10/3.11 annotations and third-party stubs.
 typing-extensions>=4.12.2,<5.0.0
-
-# HTTP adapter used by the web client.
 fastapi>=0.115.0,<1.0.0
 uvicorn>=0.32.0,<1.0.0
 python-multipart>=0.0.12,<1.0.0
-
-# Tests. Contract tests are expected to fail until tasks 1 and 2 land.
+httpx>=0.27.0,<1.0.0
 pytest>=8.3.0,<9.0.0
