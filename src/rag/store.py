@@ -78,11 +78,28 @@ class FileVectorStore:
         if not vector or all(component == 0.0 for component in vector):
             return []
         current = self._load()
+        records = current.get("records")
+        if not isinstance(records, dict):
+            return []
         scored: list[RetrievedChunk] = []
-        for payload in current["records"].values():
-            embedding = tuple(float(item) for item in payload["embedding"])
-            score = _cosine(vector, embedding)
-            chunk = _chunk_from_payload(payload["chunk"])
+        for payload in records.values():
+            if not isinstance(payload, dict):
+                continue
+            raw_emb = payload.get("embedding")
+            raw_chunk = payload.get("chunk")
+            if not isinstance(raw_emb, (list, tuple)) or not isinstance(raw_chunk, dict):
+                continue
+            try:
+                embedding = tuple(float(item) for item in raw_emb)
+            except (TypeError, ValueError):
+                continue
+            if len(embedding) != len(vector):
+                continue
+            try:
+                score = _cosine(vector, embedding)
+                chunk = _chunk_from_payload(raw_chunk)
+            except (IndexError_, TypeError, ValueError, KeyError):
+                continue
             scored.append(RetrievedChunk(chunk=chunk, score=score))
         scored.sort(
             key=lambda item: (
