@@ -1,134 +1,45 @@
 # study-agent
 
-Каркас ИИ-агента для учебы и работы. В этом коммите зафиксированы границы модулей, типы входов и выходов и контрактные тесты. Тела функций — `pass`. Реализация расписана в [TODO.md](TODO.md) четырьмя задачами: конфиг, песочница, RAG, экспорт.
+ИИ-агент для учёбы и работы: RAG по учебникам, граф знаний, OpenAI-совместимый LLM-клиент, экспорт DOCX/PDF/PPTX, песочница Python и веб-UI (`web/`).
 
-Python `>= 3.11`. Зависимости — [requirements.txt](requirements.txt). Секреты — только через окружение, образец ключей в [.env.example](.env.example). Файл `.env` не коммитится.
+Python `>= 3.11`. Зависимости — [requirements.txt](requirements.txt) (синхронизированы с [pyproject.toml](pyproject.toml)). Секреты только через окружение — [.env.example](.env.example).
 
-## Стек
+## Реализовано
 
-| Задача | Библиотека | Модуль |
-| --- | --- | --- |
-| Чат и эмбеддинги по OpenAI-совместимому HTTP | `openai` | `src/core/llm_client.py`, `src/rag/embeddings.py` |
-| Разбор `.env` и проверка полей | `pydantic`, `python-dotenv` | `config.py` |
-| Разбор PDF | `pypdf` | `src/rag/parsers.py` |
-| Граф концептов | `networkx` | `src/knowledge/graph.py` |
-| Экспорт DOCX | `python-docx` | `src/documents/docx_exporter.py` |
-| Экспорт PDF | `reportlab` | `src/documents/pdf_exporter.py` |
-| Изоляция кода | `docker` SDK или `subprocess` | `src/sandbox/runner.py` |
-| Контрактные тесты | `pytest` | `tests/` |
-
-`networkx.DiGraph` строится внутри `KnowledgeGraph` из `GraphSnapshot`. Наружу отдаются только `Concept`, `Relation` и `GraphSnapshot`.
-
-## Дерево
-
-```text
-config.py                     load_settings -> Settings
-src/core/llm_client.py        OpenAICompatibleClient.complete
-src/core/agent.py             StudyAgent.answer / export_answer
-src/rag/parsers.py            txt, md, pdf, docx -> ParsedDocument
-src/rag/chunker.py            ParsedDocument -> list[Chunk]
-src/rag/embeddings.py         texts -> vectors
-src/rag/store.py              upsert / cosine search
-src/rag/retriever.py          query -> list[RetrievedChunk]
-src/rag/ingestor.py           файл -> индекс + граф
-src/knowledge/extractor.py    chunks -> Concept, Relation
-src/knowledge/graph.py        узлы, рёбра, expand, snapshot
-src/documents/                ReportDocument -> .docx | .pdf
-src/sandbox/policy.py         статический запрет импортов и вызовов
-src/sandbox/runner.py         SubprocessSandbox | DockerSandbox
-src/utils/                    stable_id, normalize_ws
-```
-
-## Схема вызовов
-
-```text
-ingest_path(path)
-  parser_for(path).parse
-  Chunker.split                  # у каждого Chunk обязателен SourceSpan
-  EmbeddingClient.embed
-  VectorStore.upsert
-  ConceptExtractor.extract       # LLM JSON, запись в KnowledgeGraph
-  -> IngestReport
-
-StudyAgent.answer(question, execute_code=False)
-  Retriever.search               # эмбеддинг запроса + cosine, без текста ответа
-  KnowledgeGraph.expand          # соседи концептов тех же document_id
-  LLMClient.complete             # в промпт попадают только retrieved spans
-  [execute_code] один fenced ```python блок -> SandboxRunner.run
-  -> AgentAnswer(text, citations, executed)
-
-StudyAgent.export_answer(answer, path, "docx"|"pdf")
-  to_report -> DocxExporter.export | PdfExporter.export
-```
-
-Модули не вызывают друг друга в обход этих входов. `config.py` не импортирует `src`. `src/sandbox` не импортирует RAG. Парсеры не ходят в сеть. Экспортёры не ходят в LLM.
-
-## Метаданные RAG
-
-Каждый `Chunk.metadata` — `SourceSpan`:
-
-| Поле | Смысл |
+| Область | Поведение |
 | --- | --- |
-| `document_id` | стабильный идентификатор документа |
-| `source_path` | путь источника строкой |
-| `page` | страница с 1 или `None` |
-| `section` | ближайший заголовок или `None` |
-| `char_start` | включительно, в нормализованном тексте документа |
-| `char_end` | исключительно |
+| LLM | HTTP-клиент на `urllib` (`src/core/llm_client.py`), без SDK `openai` |
+| RAG | парсеры txt/md/pdf/docx, чанки, embeddings, cosine search |
+| Граф | `KnowledgeGraph` + экстрактор концептов |
+| Агент | fast-path + SKILLSTATE, веб-поиск, sandbox, файлы в ответ |
+| API | FastAPI: `/ask_stream`, `/library`, `/export`, `/webauth/*`, `/health` |
+| UI | Vite/React SPA в `web/` |
+| Песочница | subprocess (+ optional Docker), AST-policy, RLIMIT |
 
-`char_*` не сбрасываются на границе страницы. Чанк не пересекает страницу. Повторный ingest того же `document_id` заменяет чанки и узлы этого документа, не дописывает дубликаты.
+## Безопасность
 
-## LLM
+- **CORS**: `ALLOWED_ORIGINS` (comma-separated). Без `*` по умолчанию.
+- **API key**: `API_KEY` — Bearer или `X-API-Key`. Пустой ключ = режим dev.
+- **Upload**: sanitize имени, запрет `..`, лимит `MAX_UPLOAD_BYTES`, без silent overwrite.
+- **Sandbox**: policy + resource limits в child process.
 
-`OpenAICompatibleClient` шлёт `POST {LLM_BASE_URL}/chat/completions`. `OpenAICompatibleEmbeddings` шлёт `POST {LLM_BASE_URL}/embeddings`. Модель чата — `LLM_MODEL`, модель эмбеддингов — `RAG_EMBEDDING_MODEL`. Ключ передаётся заголовком `Authorization: Bearer` и не пишется в логи, исключения и экспорт.
-
-Повтор только на HTTP 429 и 5xx, не более `LLM_MAX_RETRIES`. Тело ответа с пустым `choices` — `LLMError`.
-
-## Песочница
-
-`create_sandbox` выбирает backend по `SANDBOX_BACKEND` (`docker` или `subprocess`) и не подключается к демону в конструкторе.
-
-Перед запуском `validate_source` отклоняет пустой исходник, синтаксическую ошибку, импорт вне `allowed_imports`, вызовы `eval` / `exec` / `compile` / `open` / `__import__`. Нарушение — `SandboxPolicyError`, процесс не стартует.
-
-Дочерняя среда ровно `PATH`, `SANDBOX=1`, `PYTHONUNBUFFERED=1`. `os.environ` хоста не копируется. Таймаут убивает группу процесса и возвращает `SandboxResult.timed_out=True`, без исключения. stdout и stderr обрезаются до `max_output_bytes`, тогда `truncated=True`.
-
-Docker-профиль, который обязана соблюсти реализация: `network_disabled`, если политика запрещает сеть; лимит памяти; `CapDrop=ALL`; без монтирования корня хоста.
-
-## Экспорт
-
-Вход обоих экспортёров — `ReportDocument`. Уровень секции `1..3`. Запись во временный файл рядом с целью и замена цели только после успешного закрытия документа. Ошибка валидации или I/O — `ExportError`, полуготовый файл по пути назначения не оставляется.
-
-## Проверки
+## Запуск
 
 ```bash
-python -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/pytest
+python3 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+cp .env.example .env
+./.venv/bin/uvicorn server_core:app --host 127.0.0.1 --port 8090
+cd web && npm ci && npm run dev
 ```
 
-`tests/test_config.py` и `tests/test_sandbox.py` проверяют загрузчик и subprocess-песочницу без сети и без Docker-демона. `tests/test_rag.py` и `tests/test_graph.py` подменяют LLM и эмбеддинги фейками. `tests/test_export.py` открывает записанные docx и pdf. Живой ключ для этого прогона не нужен.
+Прод: [DEPLOY.md](DEPLOY.md).
 
-## HTTP
-
-Веб-клиент лежит в [web/](web/). Сервер — [server_core.py](server_core.py):
+## Тесты и CI
 
 ```bash
-cp .env.example .env   # вписать LLM_API_KEY
-pip install -r requirements.txt
-uvicorn server_core:app --host 127.0.0.1 --port 8000
-cd web && npm install && npm run dev
+./.venv/bin/pytest -q
+./.venv/bin/ruff check src config.py server_core.py tests
 ```
 
-| Метод | Назначение |
-| --- | --- |
-| `GET /health` | процесс поднялся и конфиг прочитан |
-| `POST /ask_stream` | NDJSON: `stage`, `chunk`, `done`, `error`. Поле `execute_code=1` включает песочницу |
-| `POST /library` | ingest `.txt` `.md` `.pdf` `.docx` |
-| `GET /library` / `DELETE /library/{id}` | список и удаление |
-| `POST /export` | `docx` или `pdf` из текста ответа |
-| `POST /reset_history` | сброс короткой памяти чата |
-
-`RAG_EMBEDDING_MODEL=local-hash` — локальные векторы. Шлюз Gonka на момент подключения не отдаёт `/embeddings`. Граф понятий по-прежнему строится одним JSON-вызовом чат-модели при ingest.
-
-В интерфейсе нет генерации картинок, веб-поиска, тарифов и входа через Telegram: у агента этого нет. Режим Agent — это тот же ответ плюс один fenced `python`-блок в песочнице. Скилл — локальная доп. инструкция к вопросу. Библиотека — реальный индекс.
-
+GitHub Actions: `.github/workflows/ci.yml`.

@@ -1,5 +1,5 @@
-# Runtime and test dependencies for the study/work agent.
-# LLM client is implemented with urllib (src/core/llm_client.py); no openai SDK.
+# Single source of truth for dependencies (see also pyproject.toml).
+# LLM client: urllib in src/core/llm_client.py — no openai SDK.
 
 pydantic>=2.9.0,<3.0.0
 python-dotenv>=1.0.1,<2.0.0
@@ -17,4 +17,7 @@ fastapi>=0.115.0,<1.0.0
 uvicorn>=0.32.0,<1.0.0
 python-multipart>=0.0.12,<1.0.0
 httpx>=0.27.0,<1.0.0
+
+# Dev / test / lint
 pytest>=8.3.0,<9.0.0
+ruff>=0.8.0,<1.0.0
